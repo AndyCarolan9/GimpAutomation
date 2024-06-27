@@ -21,17 +21,22 @@ AWAY_TEAM_LAYER_NAME = "AwayTeam"
 
 ## Load the competitions from text file
 directory = os.path.dirname(os.path.abspath(__file__))
-file_name = os.path.join(directory, "competitions.txt")
-with open(file_name) as file:
-    competitions = [line.strip() for line in file]
+comps_file_name = os.path.join(directory, "competitions.txt")
+with open(comps_file_name) as comps_file:
+    competitions = [line.strip() for line in comps_file]
 
-def announcement_automation(image, active_layer, competition_index):
+## Load the teams from text file
+teams_file_name = os.path.join(directory, "LouthTeams.txt")
+with open(teams_file_name) as teams_file:
+    teams = [line.strip() for line in teams_file]
+
+def announcement_automation(image, active_layer, competition_index, home_team_index, away_team_index):
     set_layer_text(image, COMPETITION_LAYER_NAME, competitions[competition_index], 65)
     set_layer_text(image, DATE_LAYER_NAME, "Monday 12th June", 32)
     set_layer_text(image, TIME_LAYER_NAME, "7:30 PM", 32)
     set_layer_text(image, VENUE_LAYER_NAME, "Home", 32)
-    set_layer_text(image, HOME_TEAM_LAYER_NAME, "Glen Emmets", 32)
-    set_layer_text(image, AWAY_TEAM_LAYER_NAME, "Away Team", 32)
+    set_layer_text(image, HOME_TEAM_LAYER_NAME, teams[home_team_index], 32)
+    set_layer_text(image, AWAY_TEAM_LAYER_NAME, teams[away_team_index], 32)
 
 def find_layer(layers, layer_name):
     for layer in layers:
@@ -72,7 +77,9 @@ register(
           "<Image>/Automation/Announcement",
           "*",
           [
-            (PF_OPTION, "competition_index",   "Competition Name:", 0, competitions)
+            (PF_OPTION, "competition_index",   "Competition Name:", 0, competitions),
+            (PF_OPTION, "home_team_index",   "Home Team Name:", 0, teams),
+            (PF_OPTION, "away_team_index",   "Away Team Name:", 0, teams)
           ],
           [],
           announcement_automation)
