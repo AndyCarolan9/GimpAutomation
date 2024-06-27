@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from gimpfu import *
-
+import os
 import sys
 sys.stderr = open( 'c:\\temp\\gimpstderr.txt', 'a')
 
@@ -19,8 +19,14 @@ VENUE_LAYER_NAME = "Venue"
 HOME_TEAM_LAYER_NAME = "HomeTeam"
 AWAY_TEAM_LAYER_NAME = "AwayTeam"
 
-def announcement_automation(image, active_layer):
-    set_layer_text(image, COMPETITION_LAYER_NAME, "Title", 65)
+## Load the competitions from text file
+directory = os.path.dirname(os.path.abspath(__file__))
+file_name = os.path.join(directory, "competitions.txt")
+with open(file_name) as file:
+    competitions = [line.strip() for line in file]
+
+def announcement_automation(image, active_layer, competition_index):
+    set_layer_text(image, COMPETITION_LAYER_NAME, competitions[competition_index], 65)
     set_layer_text(image, DATE_LAYER_NAME, "Monday 12th June", 32)
     set_layer_text(image, TIME_LAYER_NAME, "7:30 PM", 32)
     set_layer_text(image, VENUE_LAYER_NAME, "Home", 32)
@@ -65,7 +71,9 @@ register(
           "2024",
           "<Image>/Automation/Announcement",
           "*",
-          [],
+          [
+            (PF_OPTION, "competition_index",   "Competition Name:", 0, competitions)
+          ],
           [],
           announcement_automation)
 
