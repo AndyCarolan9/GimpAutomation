@@ -30,11 +30,11 @@ teams_file_name = os.path.join(directory, "LouthTeams.txt")
 with open(teams_file_name) as teams_file:
     teams = [line.strip() for line in teams_file]
 
-def announcement_automation(image, active_layer, competition_index, home_team_index, away_team_index):
+def announcement_automation(image, active_layer, competition_index, home_team_index, away_team_index, venue_name):
     set_layer_text(image, COMPETITION_LAYER_NAME, competitions[competition_index], 65)
     set_layer_text(image, DATE_LAYER_NAME, "Monday 12th June", 32)
     set_layer_text(image, TIME_LAYER_NAME, "7:30 PM", 32)
-    set_layer_text(image, VENUE_LAYER_NAME, "Home", 32)
+    set_layer_text(image, VENUE_LAYER_NAME, venue_name, 32)
     set_layer_text(image, HOME_TEAM_LAYER_NAME, teams[home_team_index], 32)
     set_layer_text(image, AWAY_TEAM_LAYER_NAME, teams[away_team_index], 32)
 
@@ -79,7 +79,8 @@ register(
           [
             (PF_OPTION, "competition_index",   "Competition Name:", 0, competitions),
             (PF_OPTION, "home_team_index",   "Home Team Name:", 0, teams),
-            (PF_OPTION, "away_team_index",   "Away Team Name:", 0, teams)
+            (PF_OPTION, "away_team_index",   "Away Team Name:", 0, teams),
+            (PF_STRING, "venue_name", "Venue Name:", "")
           ],
           [],
           announcement_automation)
