@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 
 from gimpfu import *
+import gtk
+import gimpui
+import gobject
 import os
 import sys
 sys.stderr = open( 'c:\\temp\\gimpstderr.txt', 'a')
@@ -30,13 +33,99 @@ teams_file_name = os.path.join(directory, "LouthTeams.txt")
 with open(teams_file_name) as teams_file:
     teams = [line.strip() for line in teams_file]
 
-def announcement_automation(image, active_layer, competition_index, home_team_index, away_team_index, venue_name):
-    set_layer_text(image, COMPETITION_LAYER_NAME, competitions[competition_index], 65)
+# Source: https://github.com/nerudaj/gimp-pixel-art-utils/tree/main
+#UI Helpers - TODO: Move this to it's own file
+def create_label(text, parent, spacing):
+    label = gtk.Label(text)
+    parent.pack_start(label, True, True, spacing)
+    return label
+
+def create_button(label, box, spacing = 0):
+    btn = gtk.Button()
+    btn.set_label(label)
+    box.pack_start(btn, True, True, spacing)
+    return btn
+
+def create_value_input(value, box, spacing = 0):
+    input_entry = gtk.Entry()
+    input_entry.set_text("{}".format(value))
+    box.pack_start(input_entry, True, True, spacing)
+    return input_entry
+
+def create_vbox(parent, grow_horizontally, spacing):
+    box = gtk.VBox()
+    parent.pack_start(box, grow_horizontally, True, spacing)
+    return box
+
+def create_hbox(parent, grow_vertically, spacing):
+    box = gtk.HBox()
+    parent.pack_start(box, grow_vertically, True, spacing)
+    return box
+# UI Helpers End
+
+def create_dropdown(labels_vbox, controls_vbox, label, items):
+    label_box = create_hbox(labels_vbox, True, 5)
+    select_box = create_hbox(controls_vbox, False, 5)
+    create_label(label, label_box, 10)
+    combox = gtk.combo_box_new_text()
+    for item in items:
+        combox.append_text(item)
+    combox.set_active(0)
+    select_box.pack_start(combox, True, True, 5)
+    return combox
+
+def create_ui(image):
+    window = gtk.Window()
+    window.set_title("Announcement")
+    window.connect('destroy', close_ui)
+    window_box = gtk.VBox()
+    window.add(window_box)
+    window.set_keep_above(True)
+
+    horizontal_spacing = 10
+    vertical_spacing = 5
+
+    # Main Vboxes
+    bottom_controls_hbox = create_hbox(window_box, False, horizontal_spacing)
+    labels_vbox = create_vbox(bottom_controls_hbox, True, horizontal_spacing)
+    controls_vbox = create_vbox(bottom_controls_hbox, True, horizontal_spacing)
+
+    # Competition selection
+    competition_select_box = create_dropdown(labels_vbox, controls_vbox, "Competition: ", competitions)
+
+    # Home team selection
+    home_team_select_box = create_dropdown(labels_vbox, controls_vbox, "Home Team: ", teams)
+
+    # Away team selection
+    away_team_select_box = create_dropdown(labels_vbox, controls_vbox, "Away Team: ", teams)
+
+    # Venue input box
+    venue_label_box = create_hbox(labels_vbox, True, vertical_spacing)
+    venue_controls_box = create_hbox(controls_vbox, False, vertical_spacing)
+    create_label("Venue: ", venue_label_box, horizontal_spacing)
+    venue_entry = create_value_input("", venue_controls_box)
+    
+    # Run button
+    run_btn = create_button("Run", window_box)
+    run_btn.connect("clicked", announcement_automation, image, competition_select_box, home_team_select_box, away_team_select_box, venue_entry)
+
+    window.show_all()
+
+def close_ui():
+    gtk.main_quit()
+
+def plugin_entry(image, active_layer):
+    create_ui(image)
+    gtk.main()
+
+def announcement_automation(widget, image, competition, home_team_name, away_team_name, venue_name):
+    set_layer_text(image, COMPETITION_LAYER_NAME, competition.get_active_text(), 65)
     set_layer_text(image, DATE_LAYER_NAME, "Monday 12th June", 32)
     set_layer_text(image, TIME_LAYER_NAME, "7:30 PM", 32)
-    set_layer_text(image, VENUE_LAYER_NAME, venue_name, 32)
-    set_layer_text(image, HOME_TEAM_LAYER_NAME, teams[home_team_index], 32)
-    set_layer_text(image, AWAY_TEAM_LAYER_NAME, teams[away_team_index], 32)
+    set_layer_text(image, VENUE_LAYER_NAME, venue_name.get_text(), 32)
+    set_layer_text(image, HOME_TEAM_LAYER_NAME, home_team_name.get_active_text(), 32)
+    set_layer_text(image, AWAY_TEAM_LAYER_NAME, away_team_name.get_active_text(), 32)
+    close_ui()
 
 def find_layer(layers, layer_name):
     for layer in layers:
@@ -76,13 +165,8 @@ register(
           "2024",
           "<Image>/Automation/Announcement",
           "*",
-          [
-            (PF_OPTION, "competition_index",   "Competition Name:", 0, competitions),
-            (PF_OPTION, "home_team_index",   "Home Team Name:", 0, teams),
-            (PF_OPTION, "away_team_index",   "Away Team Name:", 0, teams),
-            (PF_STRING, "venue_name", "Venue Name:", "")
-          ],
           [],
-          announcement_automation)
+          [],
+          plugin_entry)
 
 main()
