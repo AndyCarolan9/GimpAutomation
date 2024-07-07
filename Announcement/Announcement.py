@@ -5,6 +5,7 @@ from gimpfu import *
 import gtk
 import gimpui
 import gobject
+from datetime import datetime
 import os
 import sys
 sys.stderr = open( 'c:\\temp\\gimpstderr.txt', 'a')
@@ -104,10 +105,19 @@ def create_ui(image):
     venue_controls_box = create_hbox(controls_vbox, False, vertical_spacing)
     create_label("Venue: ", venue_label_box, horizontal_spacing)
     venue_entry = create_value_input("", venue_controls_box)
+
+    # Date input
+    calendar_label_box = create_hbox(labels_vbox, True, 75)
+    calendar_select_box = create_hbox(controls_vbox, False, 5)
+    create_label("Date: ", calendar_label_box, 10)
+
+    calendar = gtk.Calendar()
+    calendar.set_display_options(gtk.CALENDAR_SHOW_HEADING|gtk.CALENDAR_SHOW_DAY_NAMES)
+    calendar_select_box.pack_start(calendar, True, True, 5)
     
     # Run button
     run_btn = create_button("Run", window_box)
-    run_btn.connect("clicked", announcement_automation, image, competition_select_box, home_team_select_box, away_team_select_box, venue_entry)
+    run_btn.connect("clicked", announcement_automation, image, competition_select_box, home_team_select_box, away_team_select_box, venue_entry, calendar)
 
     window.show_all()
 
@@ -118,10 +128,17 @@ def plugin_entry(image, active_layer):
     create_ui(image)
     gtk.main()
 
-def announcement_automation(widget, image, competition, home_team_name, away_team_name, venue_name):
+def announcement_automation(widget, image, competition, home_team_name, away_team_name, venue_name, calendar):
+    # Setup date variables
+    date_array = calendar.get_date()
+    date_time = datetime(date_array[0], date_array[1] + 1, date_array[2])
+    day_name = date_time.strftime("%A")
+    month_name = date_time.strftime("%B")
+    day_date = date_time.strftime("%d")
+
     set_layer_text(image, COMPETITION_LAYER_NAME, competition.get_active_text(), 65)
-    set_layer_text(image, DATE_LAYER_NAME, "Monday 12th June", 32)
-    set_layer_text(image, TIME_LAYER_NAME, "7:30 PM", 32)
+    set_layer_text(image, DATE_LAYER_NAME, "{0}, {1} {2}".format(day_name, month_name, day_date), 32)
+    #set_layer_text(image, TIME_LAYER_NAME, date.format("A, B %e"), 32)
     set_layer_text(image, VENUE_LAYER_NAME, venue_name.get_text(), 32)
     set_layer_text(image, HOME_TEAM_LAYER_NAME, home_team_name.get_active_text(), 32)
     set_layer_text(image, AWAY_TEAM_LAYER_NAME, away_team_name.get_active_text(), 32)
