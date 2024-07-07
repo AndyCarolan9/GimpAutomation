@@ -64,10 +64,11 @@ def create_hbox(parent, grow_vertically, spacing):
     return box
 # UI Helpers End
 
-def create_dropdown(labels_vbox, controls_vbox, label, items):
-    label_box = create_hbox(labels_vbox, True, 5)
+def create_dropdown(items, controls_vbox, label = "", labels_vbox = None):
+    if(labels_vbox is not None):
+        label_box = create_hbox(labels_vbox, True, 5)
+        create_label(label, label_box, 10)
     select_box = create_hbox(controls_vbox, False, 5)
-    create_label(label, label_box, 10)
     combox = gtk.combo_box_new_text()
     for item in items:
         combox.append_text(item)
@@ -92,13 +93,13 @@ def create_ui(image):
     controls_vbox = create_vbox(bottom_controls_hbox, True, horizontal_spacing)
 
     # Competition selection
-    competition_select_box = create_dropdown(labels_vbox, controls_vbox, "Competition: ", competitions)
+    competition_select_box = create_dropdown(competitions, controls_vbox, "Competition: ", labels_vbox)
 
     # Home team selection
-    home_team_select_box = create_dropdown(labels_vbox, controls_vbox, "Home Team: ", teams)
+    home_team_select_box = create_dropdown(teams, controls_vbox, "Home Team: ", labels_vbox)
 
     # Away team selection
-    away_team_select_box = create_dropdown(labels_vbox, controls_vbox, "Away Team: ", teams)
+    away_team_select_box = create_dropdown(teams, controls_vbox, "Away Team: ", labels_vbox)
 
     # Venue input box
     venue_label_box = create_hbox(labels_vbox, True, vertical_spacing)
@@ -114,10 +115,29 @@ def create_ui(image):
     calendar = gtk.Calendar()
     calendar.set_display_options(gtk.CALENDAR_SHOW_HEADING|gtk.CALENDAR_SHOW_DAY_NAMES)
     calendar_select_box.pack_start(calendar, True, True, 5)
-    
+
+    # Time input
+    time_label_box = create_hbox(labels_vbox, True, vertical_spacing)
+    time_controls_box = create_hbox(controls_vbox, False, vertical_spacing)
+    create_label("Time: ", time_label_box, 10)
+
+    hour_adj = gtk.Adjustment(1.0, 1.0, 12.0, 1.0, 5.0, 0.0)
+    hour_spinner = gtk.SpinButton(hour_adj, 0, 0)
+    hour_spinner.set_wrap(True)
+
+    time_controls_box.add(hour_spinner)
+
+    minute_adj = gtk.Adjustment(0.0, 0.0, 55.0, 5.0, 5.0, 0.0)
+    minute_spinner = gtk.SpinButton(minute_adj, 0, 0)
+    minute_spinner.set_wrap(True)
+
+    time_controls_box.add(minute_spinner)
+
+    am_pm_select_box = create_dropdown(["AM", "PM"], time_controls_box)
+
     # Run button
     run_btn = create_button("Run", window_box)
-    run_btn.connect("clicked", announcement_automation, image, competition_select_box, home_team_select_box, away_team_select_box, venue_entry, calendar)
+    run_btn.connect("clicked", announcement_automation, image, competition_select_box, home_team_select_box, away_team_select_box, venue_entry, calendar, hour_spinner, minute_spinner, am_pm_select_box)
 
     window.show_all()
 
@@ -128,20 +148,13 @@ def plugin_entry(image, active_layer):
     create_ui(image)
     gtk.main()
 
-def announcement_automation(widget, image, competition, home_team_name, away_team_name, venue_name, calendar):
-    # Setup date variables
-    date_array = calendar.get_date()
-    date_time = datetime(date_array[0], date_array[1] + 1, date_array[2])
-    day_name = date_time.strftime("%A")
-    month_name = date_time.strftime("%B")
-    day_date = date_time.strftime("%d")
-
+def announcement_automation(widget, image, competition, home_team_name, away_team_name, venue_name, calendar, hour, minute, time_period):
     set_layer_text(image, COMPETITION_LAYER_NAME, competition.get_active_text(), 65)
-    set_layer_text(image, DATE_LAYER_NAME, "{0}, {1} {2}".format(day_name, month_name, day_date), 32)
-    #set_layer_text(image, TIME_LAYER_NAME, date.format("A, B %e"), 32)
     set_layer_text(image, VENUE_LAYER_NAME, venue_name.get_text(), 32)
     set_layer_text(image, HOME_TEAM_LAYER_NAME, home_team_name.get_active_text(), 32)
     set_layer_text(image, AWAY_TEAM_LAYER_NAME, away_team_name.get_active_text(), 32)
+    set_date(image, calendar)
+    set_time(image, hour, minute, time_period)
     close_ui()
 
 def find_layer(layers, layer_name):
@@ -172,6 +185,26 @@ def set_layer_text(image, layer_name, text, font_size):
     pdb.gimp_text_layer_set_font_size(layer, font_size, PIXEL_UNIT)
     pdb.gimp_text_layer_set_font(layer, FONT_NAME)
     align_layer_centre(layer, xOffset, yOffset, original_width, original_height)
+
+def set_time(image, hour, minute, time_period):
+    hour_str = str(hour.get_value_as_int())
+    min_str = str(minute.get_value_as_int())
+
+    if(len(min_str) == 1):
+        min_str = "0" + min_str
+
+    time_str = hour_str + ":" + min_str + " " + time_period.get_active_text()
+    set_layer_text(image, TIME_LAYER_NAME, "{0}:{1} {2}".format(hour_str, min_str, time_period.get_active_text()), 32)
+
+def set_date(image, calendar):
+    # Setup date variables
+    date_array = calendar.get_date()
+    date_time = datetime(date_array[0], date_array[1] + 1, date_array[2])
+    day_name = date_time.strftime("%A")
+    month_name = date_time.strftime("%B")
+    day_date = date_time.strftime("%d")
+
+    set_layer_text(image, DATE_LAYER_NAME, "{0}, {1} {2}".format(day_name, month_name, day_date), 32)
 
 register(
           "python_fu_Announcement",
