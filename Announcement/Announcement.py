@@ -66,7 +66,7 @@ def create_hbox(parent, grow_vertically, spacing):
 
 def create_dropdown(items, controls_vbox, label = "", labels_vbox = None):
     if(labels_vbox is not None):
-        label_box = create_hbox(labels_vbox, True, 5)
+        label_box = create_hbox(labels_vbox, True, 0)
         create_label(label, label_box, 10)
     select_box = create_hbox(controls_vbox, False, 5)
     combox = gtk.combo_box_new_text()
@@ -85,7 +85,7 @@ def create_ui(image):
     window.set_keep_above(True)
 
     horizontal_spacing = 10
-    vertical_spacing = 5
+    vertical_spacing = 0
 
     # Main Vboxes
     bottom_controls_hbox = create_hbox(window_box, False, horizontal_spacing)
@@ -119,7 +119,7 @@ def create_ui(image):
     # Time input
     time_label_box = create_hbox(labels_vbox, True, vertical_spacing)
     time_controls_box = create_hbox(controls_vbox, False, vertical_spacing)
-    create_label("Time: ", time_label_box, 10)
+    create_label("Time: ", time_label_box, 20)
 
     hour_adj = gtk.Adjustment(1.0, 1.0, 12.0, 1.0, 5.0, 0.0)
     hour_spinner = gtk.SpinButton(hour_adj, 0, 0)
@@ -193,7 +193,6 @@ def set_time(image, hour, minute, time_period):
     if(len(min_str) == 1):
         min_str = "0" + min_str
 
-    time_str = hour_str + ":" + min_str + " " + time_period.get_active_text()
     set_layer_text(image, TIME_LAYER_NAME, "{0}:{1} {2}".format(hour_str, min_str, time_period.get_active_text()), 32)
 
 def set_date(image, calendar):
