@@ -22,6 +22,9 @@ TIME_LAYER_NAME = "Time"
 VENUE_LAYER_NAME = "Venue"
 HOME_TEAM_LAYER_NAME = "HomeTeam"
 AWAY_TEAM_LAYER_NAME = "AwayTeam"
+CREST_LAYER_GROUP = "Crests"
+HOME_CREST_ALIGNMENT_LAYER = "HomeCrestMarker"
+AWAY_CREST_ALIGNMENT_LAYER = "AwayCrestMarker"
 
 ## Load the competitions from text file
 directory = os.path.dirname(os.path.abspath(__file__))
@@ -151,16 +154,26 @@ def plugin_entry(image, active_layer):
 def announcement_automation(widget, image, competition, home_team_name, away_team_name, venue_name, calendar, hour, minute, time_period):
     set_layer_text(image, COMPETITION_LAYER_NAME, competition.get_active_text(), 65)
     set_layer_text(image, VENUE_LAYER_NAME, venue_name.get_text(), 32)
-    set_layer_text(image, HOME_TEAM_LAYER_NAME, home_team_name.get_active_text(), 32)
-    set_layer_text(image, AWAY_TEAM_LAYER_NAME, away_team_name.get_active_text(), 32)
     set_date(image, calendar)
     set_time(image, hour, minute, time_period)
+    set_team_data(image, home_team_name.get_active_text())
+    set_team_data(image, away_team_name.get_active_text(), False)
     close_ui()
 
 def find_layer(layers, layer_name):
     for layer in layers:
         if layer.name == layer_name:
             return layer
+
+    return None
+
+def find_layer_in_group(layers, layer_name, group_name):
+    layer_group = find_layer(layers, group_name)
+    if(layer_group is None):
+        pdb.gimp_message("Failed to find layer in group. Could not find layer group with name " + layer_name)
+        return None
+
+    return find_layer(layer_group.children, layer_name)
 
 def align_layer_centre(layer, original_x_offset, original_y_offset, original_width, original_height):
     original_center_x = original_x_offset + (original_width / 2)
@@ -204,6 +217,37 @@ def set_date(image, calendar):
     day_date = date_time.strftime("%d")
 
     set_layer_text(image, DATE_LAYER_NAME, "{0}, {1} {2}".format(day_name, month_name, day_date), 32)
+
+def set_team_data(image, team_name, is_home_team = True):
+    if(is_home_team):
+        set_layer_text(image, HOME_TEAM_LAYER_NAME, team_name, 32)
+    else:
+        set_layer_text(image, AWAY_TEAM_LAYER_NAME, team_name, 32)
+
+    team_crest_layer = find_layer_in_group(image.layers, team_name, CREST_LAYER_GROUP)
+    if(team_crest_layer is None):
+        pdb.gimp_message("Unable to set visible and align crest. Could not find crest layer with name " + team_name)
+        return
+
+    # Set the layer active
+    pdb.gimp_item_set_visible(team_crest_layer, True)
+    align_crest_layer(image, team_crest_layer, is_home_team)
+
+def align_crest_layer(image, crest_layer, is_home_team):
+    align_reference_layer = None
+    if(is_home_team):
+        align_reference_layer = find_layer(image.layers, HOME_CREST_ALIGNMENT_LAYER)
+    else:
+        align_reference_layer = find_layer(image.layers, AWAY_CREST_ALIGNMENT_LAYER)
+
+    if(align_reference_layer == None):
+        pdb.gimp_message("Unable to align crest layer. Could not find layer to align to.")
+        return
+
+    xOffset, yOffset = align_reference_layer.offsets
+    original_width = align_reference_layer.width
+    original_height = align_reference_layer.height
+    align_layer_centre(crest_layer, xOffset, yOffset, original_width, original_height)
 
 register(
           "python_fu_Announcement",
