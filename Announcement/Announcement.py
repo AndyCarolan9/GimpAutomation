@@ -152,12 +152,18 @@ def plugin_entry(image, active_layer):
     gtk.main()
 
 def announcement_automation(widget, image, competition, home_team_name, away_team_name, venue_name, calendar, hour, minute, time_period):
+    # Hide previously used crests
+    hide_visible_crests(image)
+
+    # Set new data
     set_layer_text(image, COMPETITION_LAYER_NAME, competition.get_active_text(), 65)
     set_layer_text(image, VENUE_LAYER_NAME, venue_name.get_text(), 32)
     set_date(image, calendar)
     set_time(image, hour, minute, time_period)
     set_team_data(image, home_team_name.get_active_text())
     set_team_data(image, away_team_name.get_active_text(), False)
+
+    # Close widget
     close_ui()
 
 def find_layer(layers, layer_name):
@@ -248,6 +254,15 @@ def align_crest_layer(image, crest_layer, is_home_team):
     original_width = align_reference_layer.width
     original_height = align_reference_layer.height
     align_layer_centre(crest_layer, xOffset, yOffset, original_width, original_height)
+
+def hide_visible_crests(image):
+    crest_group = find_layer(image.layers, CREST_LAYER_GROUP)
+    if(crest_group is None):
+        pdb.gimp_message("Failed to hide visible crests. Could not find crest layer group.")
+        return None
+
+    for crest in crest_group.children:
+        pdb.gimp_item_set_visible(crest, False)
 
 register(
           "python_fu_Announcement",
