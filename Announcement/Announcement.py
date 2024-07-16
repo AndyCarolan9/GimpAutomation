@@ -26,6 +26,7 @@ CREST_LAYER_GROUP = "Crests"
 HOME_CREST_ALIGNMENT_LAYER = "HomeCrestMarker"
 AWAY_CREST_ALIGNMENT_LAYER = "AwayCrestMarker"
 
+#region Data Loading
 ## Load the competitions from text file
 directory = os.path.dirname(os.path.abspath(__file__))
 comps_file_name = os.path.join(directory, "competitions.txt")
@@ -36,9 +37,10 @@ with open(comps_file_name) as comps_file:
 teams_file_name = os.path.join(directory, "LouthTeams.txt")
 with open(teams_file_name) as teams_file:
     teams = [line.strip() for line in teams_file]
+#endregion Data Loading
 
 # Source: https://github.com/nerudaj/gimp-pixel-art-utils/tree/main
-#UI Helpers - TODO: Move this to it's own file
+#region UI Helpers - TODO: Move this to it's own file
 def create_label(text, parent, spacing):
     label = gtk.Label(text)
     parent.pack_start(label, True, True, spacing)
@@ -65,7 +67,7 @@ def create_hbox(parent, grow_vertically, spacing):
     box = gtk.HBox()
     parent.pack_start(box, grow_vertically, True, spacing)
     return box
-# UI Helpers End
+#endregion UI Helpers End
 
 def create_dropdown(items, controls_vbox, label = "", labels_vbox = None):
     if(labels_vbox is not None):
@@ -156,7 +158,7 @@ def announcement_automation(widget, image, competition, home_team_name, away_tea
     hide_visible_crests(image)
 
     # Set new data
-    set_layer_text(image, COMPETITION_LAYER_NAME, competition.get_active_text(), 65)
+    set_layer_text(image, COMPETITION_LAYER_NAME, competition.get_active_text(), 65, True)
     set_layer_text(image, VENUE_LAYER_NAME, venue_name.get_text(), 32)
     set_date(image, calendar)
     set_time(image, hour, minute, time_period)
@@ -166,6 +168,7 @@ def announcement_automation(widget, image, competition, home_team_name, away_tea
     # Close widget
     close_ui()
 
+#region Find Layers
 def find_layer(layers, layer_name):
     for layer in layers:
         if layer.name == layer_name:
@@ -180,6 +183,7 @@ def find_layer_in_group(layers, layer_name, group_name):
         return None
 
     return find_layer(layer_group.children, layer_name)
+#endregion Find Layers
 
 def align_layer_centre(layer, original_x_offset, original_y_offset, original_width, original_height):
     original_center_x = original_x_offset + (original_width / 2)
@@ -190,7 +194,7 @@ def align_layer_centre(layer, original_x_offset, original_y_offset, original_wid
     new_y_offset = original_center_y - layer_half_height
     layer.set_offsets(new_x_offset, new_y_offset)
 
-def set_layer_text(image, layer_name, text, font_size):
+def set_layer_text(image, layer_name, text, font_size, should_wrap_text = False):
     layer = find_layer(image.layers, layer_name) 
     if layer is None:
         pdb.gimp_message("Failed to set text in layer. Could not find layer with name " + layer_name)
@@ -199,12 +203,34 @@ def set_layer_text(image, layer_name, text, font_size):
     xOffset, yOffset = layer.offsets
     original_width = layer.width
     original_height = layer.height
-    pdb.gimp_text_layer_set_text(layer, text)
+
+    if(should_wrap_text):
+        pdb.gimp_text_layer_set_text(layer, wrap_text(text))
+    else:
+        pdb.gimp_text_layer_set_text(layer, text)
+
     pdb.gimp_text_layer_set_color(layer, COLOR_WHITE)
     pdb.gimp_text_layer_set_font_size(layer, font_size, PIXEL_UNIT)
     pdb.gimp_text_layer_set_font(layer, FONT_NAME)
     align_layer_centre(layer, xOffset, yOffset, original_width, original_height)
 
+def wrap_text(text):
+    text_list = list(text)
+    line_char_count = 0
+    last_whitespace_index = 0
+    max_line_len = 11 # Max length is 12 but loop starts at 0
+    for index, letter in enumerate(text_list):
+        line_char_count += 1
+        if text_list[index] == " ":
+            last_whitespace_index = index
+        
+        if line_char_count >= max_line_len:
+            text_list[last_whitespace_index] = "\n"
+            line_char_count = 0
+
+    return "".join(text_list)
+
+#region Date Time
 def set_time(image, hour, minute, time_period):
     hour_str = str(hour.get_value_as_int())
     min_str = str(minute.get_value_as_int())
@@ -223,7 +249,9 @@ def set_date(image, calendar):
     day_date = date_time.strftime("%d")
 
     set_layer_text(image, DATE_LAYER_NAME, "{0}, {1} {2}".format(day_name, month_name, day_date), 32)
+#endregion Date Time
 
+#region Team Data
 def set_team_data(image, team_name, is_home_team = True):
     if(is_home_team):
         set_layer_text(image, HOME_TEAM_LAYER_NAME, team_name, 32)
@@ -263,6 +291,7 @@ def hide_visible_crests(image):
 
     for crest in crest_group.children:
         pdb.gimp_item_set_visible(crest, False)
+#endregion Team Data
 
 register(
           "python_fu_Announcement",
